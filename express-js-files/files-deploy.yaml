@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-deployment
+  labels:
+    app: files
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: files
+  template:
+    metadata:
+      labels:
+        app: files
+    spec:
+      containers:
+      - name: files
+        image: files:local
+        env:
+        - name: APP_IP
+          value: "192.168.0.120"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+          - name: hello-persistent-storage
+            mountPath: /usr/src/app/uploads
+      volumes:
+        - name: hello-persistent-storage
+          persistentVolumeClaim:
+            claimName: cephfs-pvc
