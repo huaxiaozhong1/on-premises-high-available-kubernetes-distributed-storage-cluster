@@ -1579,7 +1579,7 @@ It's expected that a **High Available** app will be implemented probably, which 
 
 If it is done, "files" (web app, for instance) can be visited by remote customer (via browser) over Internet as a **SaaS** (Software as a Service), which is a typical **Service Model** of Cloud Computing. 
 
-On the meaning, as [said](#visited-from-internet), you will be able to provide a rariety of **Cloud Service**s on internet just by working with this Microk8s/Storage Cluster.
+On the meaning, as [said](#visited-from-internet), you will be able to provide a rariety of **Cloud Service**s on internet without pausing just based at this Microk8s/Storage Cluster.
 
 
 <br>
