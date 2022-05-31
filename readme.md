@@ -7,7 +7,7 @@
 
 A **Cluster** will be running if you just go through the **Practice** as this **Markdown** document introduces. Its **Major Features** include: 
 
-**(1)**, It will be a **High-Available (HA)** cluster, based on [Microk8s](https://microk8s.io/), which app can continuously run at even if some **Host** in the cluster may get failed. 
+**(1)**, It will be a **High-Available (HA)** cluster, based on [Microk8s](https://microk8s.io/), which app can continuously run at even if some **Host**s in the cluster may get failed. 
 
 **(2)**, The cluster is cost-efficient to deploy, even if setup it at home.
 
@@ -17,7 +17,7 @@ A **Cluster** will be running if you just go through the **Practice** as this **
 
 The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)** operations on files that browser requests to server. It is coded with [Express.js](https://expressjs.com) ([Node.js](https://nodejs.org)). According to **RESTful API** requirement, its browser app just requests server app to **Transfer** one **Representational State** to another: list/upload/download/delete files to/from/inside DFS of server. 
 
-**(5)** All the resources to create, run, maintain the **Bare Metal** (the node to install cluster is a physical host other than virtual machine) and **On-premises** (you provide all running environment and resources other than renting them from other service providers) Cluster/Cloud will be all at your hand. That is, at least, your won't have "excuse" to say that our operational system is impacted by outside world :-) 
+**(5)** All the resources to create, run, maintain the **Bare Metal** (all the nodes to install cluster are physical hosts other than virtual machines) and **On-premises** (you provide all running environment and resources other than renting them from other service providers) Cluster/Cloud will be all at your hand. That is, at least, your won't have "excuse" to say that our operational system is impacted by outside world :-) 
 
 <br>
 
@@ -25,7 +25,7 @@ The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)
 
 ## 1, [Setup Microk8s Cluster](#setup-microk8s-cluster) 
 
-### 1.1, [Prepare Hosts](#prepare-hosts)
+### 1.1, [Prepare hosts](#prepare-hosts)
 
 ### 1.2, [Install Microk8s](#install-microk8s)
 
@@ -43,7 +43,7 @@ The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)
 
 ## 2, [Verify High Available Microk8s Cluster works](#verify-ha)
 
-### 2.1, [Prepare an app based on docker-containers](#prepare-hello)
+### 2.1, [Prepare an app based on docker-container](#prepare-hello)
 
 ### 2.2, [Deploy the "Hello" app](#deploy-hello)
 
@@ -51,7 +51,7 @@ The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)
 
 ### 2.4, [Verify how HA feature stops working](#verify-ha-stops)
 
-### 2.5, [Microk8s Cluster get recovered to HA functionality](#verify-ha-back)
+### 2.5, [Cluster get recovered to HA functionality](#verify-ha-back)
 
 <br>
 
@@ -63,7 +63,7 @@ The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)
 
 ### 3.3, [Prepare Raw Storage Devices](#prepare-raw-storage-device)
 
-### 3.4, [Setup Storage Cluster (2), create Storage Cluster](#create-storage-cluster)
+### 3.4, [Setup Storage Cluster (2), create Cluster](#create-storage-cluster)
 
 ### 3.5, [Setup Storage Cluster (3), create DFS on Cluster](#create-dfs)
 
@@ -75,9 +75,9 @@ The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)
 
 ## 4, [Develop/Deploy app "files" to use DFS](#deploy-files-2-use-dfs)
 
-### 4.1, [Essential coupling between Express.js app and DFS](#coupling-app-dfs)
+### 4.1, [Loose coupling between Express.js app and DFS](#coupling-app-dfs)
 
-### 4.2, [Operations from browser to CRUD files at server](#browser-crud-server-files)
+### 4.2, [Operations from browser to CRUD server files](#browser-crud-server-files)
 
 <br>
 
@@ -358,7 +358,7 @@ $ microk8s kubectl get all --all-namespaces
 
 <a id="enable-metallb"></a>
 
-### 1.6, Enable addon [**Metallb**](#https://metallb.universe.tf/)
+### 1.6, Enable addon [**"Metallb"**](#https://metallb.universe.tf/)
 
 <br>
 
@@ -444,7 +444,7 @@ On my case, the 4 hosts are all READY, at the end.
 
 <a id="prepare-hello"></a>
 
-### 2.1, Prepare an app based on docker-containers
+### 2.1, Prepare an app based on docker-container
 
 <br>
 
@@ -573,7 +573,7 @@ Now we are sure that the URL stops the response to browser request any more. So 
 
 <a id="verify-ha-back"></a>
 
-### 2.5, Microk8s Cluster get recovered to HA functionality. 
+### 2.5, Cluster get recovered to HA functionality. 
 
 <br>
 
@@ -1059,17 +1059,23 @@ var storage = multer.diskStorage({
 });
 ```
  
-It is the place that the **file** is stored into **directoyrPath** by calling **multer.diskStorage**. Since Node.js I/O operation is asynchronous, the callback is needed to run the consquent statements. 
+It is the I/O interface, through which the uploaded **file** is stored into **directoyrPath**. The interface is designed as:
 
-What does the app wait in the asynchromous interval? -- Waiting for other processes (pods)'s cooperative working in **DFS** side to put the file into.  
+(1), The app only calls one API (**multer.diskStorage**) to complete operation on file uploading. It doesn't need to know the processing mechanism on **Storage** side, such as, where and how the Storage Process to run; even what the Storage Medium is (a HostPath disk, a iSCSI device, a DFS cluster, or a cloud bucket of GCP, S3, or Azure...).
 
-At next section, let's create and have trial with the app. 
+(2), The app behavior won't be impacted if the Storage Medium changes, for example, changing from a local DFS cluster to a GCP bucket.
+
+(3), After multer.diskStorage is called, the app just waits for the callback function's coming asynchronously, then execute the next statement. 
+
+Obviously, the **Achitecture** connecting the app and DFS is a **Loose Coupling**, which is pretty much like a pair of microservices although the DFS doesn't belong the design of our app.  
+
+At next section, let's create and take a trial of the app. 
 
 <br>
 
 <a id="browser-crud-server-files"></a>
 
-### 4.2, Operations from browser to CRUD files at server.
+### 4.2, Operations from browser to CRUD server files.
 
 <br>
 
@@ -1087,7 +1093,7 @@ Import the image into Microk8s.
 $ microk8s ctr image import files.local.tar
 ```
 
-Deploy the **Express.js (Node.js) app** from **Docker container image** as a service of **Microk8s (Kubernetes)** cluster.
+Deploy the **Express.js (Node.js) app** from **Docker container image** to a service of **Microk8s (Kubernetes)** cluster.
 
 ```
 $ microk8s kubectl create -f files-deploy.yaml
@@ -1114,9 +1120,9 @@ Knowing from the messages, the **URL**
 http://192.168.0.121:18080/
 ```
 
-is a public IP address and port that user could call from outside to access the app (a virtual service, other than to an IP address/port at specfic pod or node or host).
+is a public IP address and port that user could call from outside to access the app. The address/port isn't at a specific pod or node or host, it is a **"Virtual"**.
 
-Following the address and port, some parameters can also be input, according to the rule of Express.js router. With the parameter, server app will select a specfic operation to run.
+Following the address and port, some parameters can also be input. Server app will follow the parameter to run a specfic operation, as Express.js router defines, 
 
 On our app, operations following these parameters are coded:
 
@@ -1126,7 +1132,7 @@ On our app, operations following these parameters are coded:
 
 <br>
 
-When the request is sent to server, such a page will be displayed on browser (firefox):
+When the request is sent to server, such a page will be displayed on browser (Firefox):
 
 <div align="center">
   <img src="pictures/upload.png" alt="drawing">
@@ -1151,7 +1157,7 @@ As soon as server receives/stores the file, a message will display on your brows
 
 <br>
 
-Let's verify via app ("rook-direct-mount") that we launched at [Section 3.6](#verify-dfs-direct-mounting):
+Let's verify via app ("rook-direct-mount") that we launched at [Section 3.6](#verify-dfs-direct-mounting), to see if the local file (daisy.jpg) has been uploaded to DFS.
 
 ```
 # ls -Rl /mnt
@@ -1177,7 +1183,7 @@ total 48
 -rw-r--r-- 1 root root 22782 Apr 29 11:05 daisy.jpg
 ```
 
--- **the last line** shows that the file we have just uploaded is stored inside DFS really. 
+-- **the last line** shows that the uploaded file is stored in the DFS really. 
 
 <br>
 
@@ -1192,7 +1198,7 @@ If you are using **Firefox** browser, such a page shall display when the above r
   <br><br>
 </div>
 
-Move mouse onto a url, press right button, select **Save link as** on the pop-up dialog window, select a local directory to download the file from server side. 
+Move mouse onto a url, press right button, select **Save link as** on the coming pop-up dialog box, select a local directory to download the file from server side. 
 
 If you are using **Chrome** browser (on PC, for example) or **Chromium** browser (on Raspberry Pi, for example), then a different tab may display on your browser:
 
@@ -1220,7 +1226,7 @@ message	"The file has been deleted. "
 
 **Notice**: If you use Chrome/Chromium browser, following the similar steps that we introduced at Step 4.2.(3), you could also delete the file, as well.
 
-Now we have got a **test app**, **a tool**, to run **CRUD** operations for files at server side. All the operations can be done from browsers out of cluster.
+Now we have got a **test app**, **a tool**, to run **CRUD** operations for files is **DFS**. All the operations can be done from browsers out of cluster.
 
 <br>
 
@@ -1271,7 +1277,7 @@ microk8s kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- bash
 [rook@rook-ceph-tools-555c879675-4pggx /]$ 
 ```
 
-By executing the deployment (app), we have entered a pod of the deployment. 
+By executing the deployment (app), now we have entered a pod of the deployment. 
 
 Typing [CLI commands](https://docs.ceph.com/en/latest/rados/operations/monitoring/#monitoring-a-cluster) in the pod, to look at how the **Tool** works:
 
@@ -1308,7 +1314,7 @@ Section **3.4** for MON and MGR settings;
 
 Section **3.5** for MDS setting.
 
-So, these messages tell us that the Rook Toolbox works well now.
+So, these messages tell us that Rook Toolbox has been created successfully.
 
 <br>
 
@@ -1364,7 +1370,7 @@ So, now we could be quite confident that the Ceph Dashboard is ready to work.
 
 <a id="check-statuses-4-storage-cluster"></a>
 
-### 5.2, Checking various statues of Storage Cluster.
+### 5.2, Checking various status of Storage Cluster.
 
 <br>
 
@@ -1435,7 +1441,7 @@ We could monitor some type of daemon status via more ways. For example, select *
   <br><br>
 </div>
 
-It shows: osd.0 has joined **in** the cluste and taken **up** xiaozhong-w540, which has disk space 11.2GB... 
+It shows: osd.0 has joined **in** the cluste and taken **up** xiaozhong-w540, which occupies disk space 11.2GB... 
 
 Refer to [Section 4.2](#browser-crud-server-files), the test app **"files"** could also be used to verify if all CRUD operations work at the moment.
 
@@ -1456,7 +1462,7 @@ Now let's power xiaozhong-w540 off, to simulate that some issue occurs with the 
 
 It shows that host xiaozhong-w540 is still **in** the cluster but is shut **down**. Now there are only 3 OSD nodes working in the cluster. 
 
-At the moment, if you run test app **files**, all the CRUD operations for server are working. They aren't influenced by a node of **Storage Cluster** being lost as long as 3 OSDs still remains working in the Storage Cluster. This shows what **High Availability** feature works for Storage Cluster, and how does for.
+At the moment, if you run test app **files**, all the CRUD operations for server are still working. They aren't influenced by a node of **Storage Cluster** being lost as long as 3 OSDs still remains working in the cluster. This shows how **High Availability** feature works for Storage Cluster.
 
 At the moment, let's check the working status of **Microk8s Cluster**:
 
@@ -1469,7 +1475,7 @@ high-availability: yes
 ...
 ```
 
-The result is the same as what we got at [Section 2.3](#3-nodes-k8s), the Microk8s (Kubernetes) Cluster still works in HA status, although the node nubmer reduces from 4 to 3.
+The result is the same as what we got at [Section 2.3](#3-nodes-k8s). That is, the Microk8s Cluster keeps working when the node nubmer reduces from 4 to 3 because it is a High Available Kubernetes cluster. 
 
 But we could still find some difference with **status of Storage Cluster**: 
 
@@ -1480,11 +1486,11 @@ Go **Cluster -> Monitors**, the browser dispalys:
   <br><br>
 </div>
 
-It tells us that mon.k has been **Not in Quorum**. That is, the monitor daemon are't effective. So, there are only 2 MON daemons working right now. That is, we still have 2/3 ( a majority of ) MONs keeping active, which Ceph requires.
+It tells us that mon.k is **Not in Quorum** now. That is, the monitor daemon isn't effective at the moment. So, there remains 2 MON daemons working. The number does still meet the requirement of [Ceph's distributed consensus algorithm called **Paxos**](https://docs.ceph.com/en/latest/rados/operations/add-or-rm-mons/#adding-monitors), which is: "Ceph requires a majority of monitors to be active to establish a quorum (thus establishing consensus)."
 
-**So**, from the new status due to a node shutdown, we know that 2 deamons stop working, mon.k and osd.0.
+**So**, from the new status due to one node shutdown, we know that 2 deamons stop working, mon.k and osd.0.
 
-How does status report from Rook toolbox?
+What does status report from Rook toolbox?
 
 ```
 [rook@rook-ceph-tools-555c879675-vm6wv /]$ ceph status
@@ -1516,13 +1522,13 @@ Move the look at dashboard by selecting **Cluster -> Hosts** again:
   <br><br>
 </div>
 
-More clearly, the original **Standby** daemons, mgr.a and mds.myfs-a playing as **Avtive** now, are keeping running on the same host, xiaozhong-x570.
+More clearly, the original **Standby** daemons, mgr.a and mds.myfs-a playing as **Avtive** now, are keeping running on the same host: xiaozhong-x570.
 
 The original **Active** damons, mgr.b and mds.myfs-b, are playing **Standby** role now, and have moved to xiaozhong-giga with little time-inverval.
 
-It's interesting to find that mon.k and osd.0 are still marked as staying at xiaozhong-w540 although the host has been powered off. Not 100% sure if it is the expected behavior designed by **Ceph Dashboard**. 
+It's interesting at the finding that mon.k and osd.0 are still marked as staying at xiaozhong-w540 although the host has been powered off. Not 100% sure if it is the expected behavior designed by **Ceph Dashboard**. 
 
-##### Conclusion: when a host down, MGR and MDS daemons move to other host and keep working; OSD won't be marked to move, and MON won't be immediately marked to move.
+##### Conclusion: when a host down, its MGR and MDS daemons move to other host and keep working; its OSD won't be marked to move, and MON won't be immediately marked to move.
 
 <br>
 
@@ -1554,7 +1560,7 @@ Check **Cluster -> Hosts** on Ceph Dashboard, it shall shows:
   <br><br>
 </div>
 
-No defference has happened from the [Host xiaozhong-w540](#dash-host-down) was down.
+No difference has happened from the [Host xiaozhong-w540](#dash-host-down) was down.
 
 Check **Cluster -> Monitors**:
 
@@ -1565,7 +1571,7 @@ Check **Cluster -> Monitors**:
 
 It shows that mon.k re-works and comes in **Quorum** again. 
 
-If pressing **Cluster -> OSDs**, the status of osd.0 will come back from **down** to **up**. It will restore to normal working status. 
+If pressing **Cluster -> OSDs**, the status of osd.0 will come back from **down** to **up**. It will restore to normal working status automatically. 
 
 <br>
 
@@ -1575,7 +1581,7 @@ If pressing **Cluster -> OSDs**, the status of osd.0 will come back from **down*
 
 <br>
 
-It's expected that a **High Available** app will be implemented probably, which aims to publish on Internet with web app running on our Microk8s/Storage Cluster. It needs to create an Internet url (including domain name) that maps to the web app. 
+It's expected that a **High Available app** will be implemented probably. Its goal is to publish web app running on our Microk8s/Storage Cluster to Internet. This shall be done by creating an Internet url (including domain name) to map the web app. 
 
 If it is done, "files" (web app, for instance) can be visited by remote customer (via browser) over Internet as a **SaaS** (Software as a Service), which is a typical **Service Model** of Cloud Computing. 
 
