@@ -1,8 +1,7 @@
 {
-  "name": "docker_web_app",
+  "name": "hello",
   "version": "1.0.0",
-  "description": "Node.js on Docker",
-  "author": "Xiaozhong Hua<huaxiaozhong1@hotmail.com>",
+  "description": "simplest full-stack web app",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
