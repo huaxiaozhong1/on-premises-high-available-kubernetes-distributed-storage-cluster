@@ -158,8 +158,8 @@ To access the cluster, another device may be needed to run a browser app, which 
 On every **Host**, download our repository from github:
 
 ```
-$ git clone https://github.com/huaxiaozhong1/practice-on-microk8s-ceph-rook-high-available-bare-metal-cluster
-$ cd practice-on-microk8s-ceph-rook-high-available-bare-metal-cluster
+$ git clone https://github.com/huaxiaozhong1/on-premises-high-available-kubernetes-distributed-storage-cluster.git
+$ cd on-premises-high-available-kubernetes-distributed-storage-cluster.git
 ```
 
 Start to install Microk8s and necessary add-ons.
@@ -457,7 +457,7 @@ On my Ubuntu 20.04 machines, docker.io is installed. Let's code a docker contain
 Run the following commands at every node, to create the app for each host. Or, you could build it in one host, scp it to other hosts.  
 
 ```
-$ cd practice-on-microk8s-ceph-rook-high-available-distributed-storage-cluster/hello
+$ cd on-premises-high-available-kubernetes-distributed-storage-cluster.git/hello
 $ sudo docker build -t hello.local .
 ...
 ```
@@ -661,7 +661,7 @@ From next sections, let's introduce the whole procedure to setup such a **Storag
 
 <br>
 
-Go to upper level directory that is at the same level of "practice-on-microk8s-ceph-rook-high-available-bare-metal-cluster", to download git repository for Rook, 
+Go to upper level directory that is at the same level of "on-premises-high-available-kubernetes-distributed-storage-cluster.git", to download git repository for Rook, 
 
 ```
 $ git clone https://github.com/rook/rook.git
@@ -1018,7 +1018,7 @@ The framework of app "**files**" is based on express.js, de facto standard frame
 
 <br>
 
-Go back to directory "practice-on-microk8s-ceph-rook-high-available-bare-metal-cluster", then enter a sub-folder:
+Go back to directory "on-premises-high-available-kubernetes-distributed-storage-cluster.git", then enter a sub-folder:
 
 ```
 $ cd express-js-files
@@ -1141,7 +1141,7 @@ When the request is sent to server, such a page will be displayed on browser (Fi
 
 Pressing "Browser" button; on the coming pop-up dialog box, select 
 
-daisy.jpg from directory practice-on-microk8s-ceph-rook-high-available-bare-metal-cluster/pictures, 
+daisy.jpg from directory on-premises-high-available-kubernetes-distributed-storage-cluster.git/pictures, 
 
 upload the local file to server by pressing "Upload File" button.
 
