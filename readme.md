@@ -45,9 +45,9 @@ The **Cluster/Cloud**-based app implements **CRUD (create, read, update, delete)
 
 ### 2.1, [Prepare an app based on docker-container](#prepare-hello)
 
-### 2.2, [Deploy the "Hello" app](#deploy-hello)
+### 2.2, [Deploy the "hello" app](#deploy-hello)
 
-### 2.3, [Run "Hello" to verify HA](#run-hello)
+### 2.3, [Run "hello" to verify HA](#run-hello)
 
 ### 2.4, [Verify how HA feature stops working](#verify-ha-stops)
 
@@ -119,7 +119,7 @@ Microk8s is a "minimal production [Kubernetes](https://kubernetes.io)". Kubernet
 
 According to technical theory and our practice, Micork8s plays a critical role as base of the whole system as:
 
-**(1)**, It organizes system and app components as self-cooperative containers. The mechanism isolates the cluster from Host system (hardwar/software) that it resides, so that it is much easier for us to develope and maintain our cluster on each host. For example, Linux kernel, version 5.4.0, is installed into the pod, which is just like a "micro-computer" that our test app "Hello" is running at. If needed, we could upgrade or downgrade its version or change its configuration but will do nothing with the Host environment.
+**(1)**, It organizes system and app components as self-cooperative containers. The mechanism isolates the cluster from Host system (hardwar/software) that it resides, so that it is much easier for us to develope and maintain our cluster on each host. For example, Linux kernel, version 5.4.0, is installed into the pod, which is just like a "micro-computer" that our test app "hello" is running at. If needed, we could upgrade or downgrade its version or change its configuration but will do nothing with the Host environment.
 
 **(2)**, The app deployed on Microk8s as a Kubernetes service, such as web app, can be visited from both LAN (**as cluster**) and Internet (**as Cloud**). That is, Microk8s establishes fundamental footstone, based on which you shall be able to implement a customized one on either local (enterpriser, building, house, and etc) or public (remote customers) scale.
 
@@ -452,13 +452,13 @@ On my case, the 4 hosts are all READY, at the end.
 
 **--** We have developed a simple "test" app for the purpose.  
 
-On my Ubuntu 20.04 machines, docker.io is installed. Let's code a docker container app, called as **"Hello"**, to verify that the Microk8s Cluster is working.  
+On my Ubuntu 20.04 machines, docker.io is installed. Let's code a docker container app, called as **"hello"**, to verify that the Microk8s Cluster is working.  
 
 Run the following commands at every node, to create the app for each host. Or, you could build it in one host, scp it to other hosts.  
 
 ```
 $ cd on-premises-high-available-kubernetes-distributed-storage-cluster.git/hello
-$ sudo docker build -t hello.local .
+$ sudo docker build -t hello:local .
 ...
 ```
 
@@ -476,13 +476,15 @@ The procedure may need a few minutes.
 
 <a id="deploy-hello"></a>
 
-### 2.2, Deploy the **"Hello"** app.
+### 2.2, Deploy the **"hello"** app.
 
 <br>
 
-We have built the tarball of test app "Hello" at step 2.1. Now let's deploy it.
+We have built the tarball of test app "hello" at step 2.1. Now let's deploy it.
 
 ```
+$ microk8s ctr image import hello.local.tar
+...
 $ microk8s kubectl create deployment hello --image=hello:local
 ...
 $ microk8s kubectl scale deployment hello --replicas=4
@@ -502,13 +504,13 @@ default     service/hello        LoadBalancer   10.152.183.185   192.168.0.120  
 ...
 ```
 
-Now we know that the **Kubernetes Service** **"Hello"** could be visited via external IP (192.168.0.120 on port 8081) from devices out of the cluster.
+Now we know that the **Kubernetes Service** **"hello"** could be visited via external IP (192.168.0.120 on port 8081) from devices out of the cluster.
 
 <br>
 
 <a id="run-hello"></a>
 
-### 2.3, Run "Hello" to verify HA.
+### 2.3, Run "hello" to verify HA.
 
 <br>
 
@@ -519,7 +521,7 @@ $ curl http://192.168.0.120:8081
 Hello World
 ```
 
-The **Hello** app shall reply terminal as: "Hello World". You could define other response by modifying the code at hello/server.js:
+The **hello** app shall reply terminal as: "Hello World". You could define other response by modifying the code at hello/server.js:
 
 ```
   res.send('Hello World \n');
@@ -549,7 +551,7 @@ $ curl http://192.168.0.120:8081
 Hello World
 ```
 
-It is verified that the app's IP, exposed by cluster, does continuously work. It is not influenced with the original "master" node stops working. Actually this is a behavior that **Load Balancer** brings in. It distributes **Load** (app **Hello**, on the case) over all the remaining nodes. So, on the customers' feeling, the app keeps working when some node fails.  
+It is verified that the app's IP, exposed by cluster, does continuously work. It is not influenced with the original "master" node stops working. Actually this is a behavior that **Load Balancer** brings in. It distributes **Load** (app **hello**, on the case) over all the remaining nodes. So, on the customers' feeling, the app keeps working when some node fails.  
 
 <br>
 
@@ -1600,7 +1602,7 @@ Now we have created a cost-effieint cluster system working on multiple machines 
 
 It does possess functionalities on Container Orchestration supported by Microk8s (Kubernetes), on Distributed File System supported by Ceph, on Storage Orchstration by Rook; on High Availability by all of them. 
 
-All the functionalities are verified and monitored by tools (Rook Toolbox, Ceph Dashboard) and test apps (Hello, Files developed by us).
+All the functionalities are verified and monitored by tools (Rook Toolbox, Ceph Dashboard) and test apps (hello, Files developed by us).
 
 
 
