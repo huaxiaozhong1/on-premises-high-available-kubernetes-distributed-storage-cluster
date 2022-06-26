@@ -666,11 +666,11 @@ From next sections, let's introduce the whole procedure to setup such a **Storag
 Go to upper level directory that is at the same level of "on-premises-high-available-kubernetes-distributed-storage-cluster.git", to download git repository for Rook, 
 
 ```
-$ git clone https://github.com/rook/rook.git
-$ cd ceph/rook/deploy/examples
+$ git clone --single-branch --branch v1.9.6 https://github.com/rook/rook.git
+$ cd rook/deploy/examples
 ```
 
-In directory "ceph/rook/deploy/examples", execute 2 **YAML (Yet Another Markup Language)** files to create related **Customer Resource Definition (CRD)** and **Common Resource**, which are necessary parts for a typical Kubernetes Cluster.
+In directory "rook/deploy/examples", execute 2 **YAML (Yet Another Markup Language)** files to create related **Customer Resource Definition (CRD)** and **Common Resource**, which are necessary parts for a typical Kubernetes Cluster.
 
 ```
 $ microk8s kubectl create -f crds.yaml
@@ -1258,7 +1258,7 @@ GUI (Graphical User Interface) tool -- Ceph Dashboard.
 
 <br>
 
-Change "working directory" to ceph/rook/deploy/examples, modify 1 line in toolbox.yaml:
+Change "working directory" to rook/deploy/examples, modify 1 line in toolbox.yaml:
 
 ```
   replicas: 4
