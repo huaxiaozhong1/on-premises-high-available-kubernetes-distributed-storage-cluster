@@ -467,7 +467,7 @@ A local docker image, which is named as "hello:local", is created.
 Save the image as a tarball:
 
 ```
-$ sudo docker save hello:local > hello.local.tar
+$ sudo docker save hello:local > ../hello.local.tar
 ```
 
 The procedure may need a few minutes.
@@ -483,7 +483,7 @@ The procedure may need a few minutes.
 We have built the tarball of test app "hello" at step 2.1. Now let's deploy it.
 
 ```
-$ microk8s ctr image import hello.local.tar
+$ microk8s ctr image import ../hello.local.tar
 ...
 $ microk8s kubectl create deployment hello --image=hello:local
 ...
@@ -797,8 +797,6 @@ We are told that the vdb has been **Formatted** the **Filesystem Type** as **cep
 
 Along with OSD, 2 other type of Ceph daemons: **Ceph-MON** daemon (monitoring status of Ceph distributed file system) and **Ceph-MGR** (providing interfaces to management and additional/external management for Cluster) are worthy of notice. 
 
-Now, change count of MGR daemon to 2 but keep count of MON daemon  as 3 in cluster.yaml:
-
 ```
   mon:
   ...
@@ -816,6 +814,7 @@ $ microk8s kubectl create -f cluster.yaml
 cephcluster.ceph.rook.io/rook-ceph created
 ...
 ```
+The 2 values needn't to be modified if there are 4 nodes to organize our cluster :-)
 
 The procedure needs a while to have everything done. You could keep checking:
 
@@ -858,6 +857,10 @@ On the **OSDs** created, we could create **DFS** by calling:
 $ microk8s kubectl create -f filesystem.yaml 
 cephfilesystem.ceph.rook.io/myfs created
 ...
+```
+Now, there are a few new podes created:
+
+```
 $ microk8s kubectl get pod -n rook-ceph
 ...
 csi-cephfsplugin-b8pgr                                            3/3     Running     18 (7h7m ago)   9d
@@ -912,7 +915,7 @@ $ microk8s kubectl -n rook-ceph exec -it deploy/rook-direct-mount -- bash
 [root@xiaozhong-giga /]# 
 ```
 
-Now, in the app:
+Now, we login to the deployment (it is an app actually) "rook-direct-mount" as "root account", to mount "myfs":
 
 ```
 # mon_endpoints=$(grep mon_host /etc/ceph/ceph.conf | awk '{print $3}')
@@ -920,26 +923,11 @@ Now, in the app:
 # mount -t ceph -o mds_namespace=myfs,name=admin,secret=$my_secret $mon_endpoints:/ /mnt
 # ls -R /mnt
 /mnt:
-volumes
-
-/mnt/volumes:
-_csi:csi-vol-c09ac3d3-b4d5-11ec-ba3f-9a881383e434.meta	csi
-
-/mnt/volumes/csi:
-csi-vol-c09ac3d3-b4d5-11ec-ba3f-9a881383e434
-
-/mnt/volumes/csi/csi-vol-c09ac3d3-b4d5-11ec-ba3f-9a881383e434:
-6a38aa51-57f7-4dd3-8674-6ba056e052f8
-
-/mnt/volumes/csi/csi-vol-c09ac3d3-b4d5-11ec-ba3f-9a881383e434/6a38aa51-57f7-4dd3-8674-6ba056e052f8:
-
 ```
 
 **Notice**: the command **mount** has an **-o (--option)** parameter as **mds_namespace=myfs**, meaning: the operation is going to **mount DFS "myfs"**.
 
-As result, we get proved: **1)**, the **DFS, myfs**, has been mounted successfully; **2)**, there are a 5-layer folder inside myfs.
-
-We will observe how an app manipulates contents to/from myfs, such as, list/upload/download/delete files.
+The results are: **1)**, the **DFS, myfs**, has been mounted successfully; **2)**, an empty folder is mounted. So it's clear that more steps are required so that users' data can have places to be in/out :-)
 
 <br>
 
@@ -953,7 +941,7 @@ Until now, we have created a **Storage Cluster** called as rook-ceph. A **DFS** 
 
 However the way we are not able to CRUD files in the DFS from app (e,g from browser) out of the cluster.
 
-To do so, thanks for Kubernetes to provision a **standard mechanism**, follow which an app could use the **DFS** as folder of normal file system. 
+To do so, thanks for Kubernetes to provision a **standard mechanism**, follow which an app could use the **DFS** as a folder of normal file system. 
 
 Let's go.
 
@@ -977,9 +965,31 @@ metadata:
 ...
 ```
 
-The command creates Storage Class, called as **"rook-cephfs"**, based on **myfs**.
+The command creates Storage Class, called as **"rook-cephfs"**, which could mount **myfs** as a volume.
 
 In Kubernetes mechanism to manage storage, **Persistent Volume (PV)** represents **a piece of storage** that has been provisioned using Storage Classes. A **PersistentVolumeClaim (PVC)** is **a request for storage**, through which the volume of storage can be mounted at application level. 
+
+Now if we go back to app "rook-direct-mount", the folder /mnt will have some changes:
+
+```
+# ls -Rl /mnt
+/mnt:
+total 0
+drwxr-xr-x 4 root root 2 Jun 29 11:03 volumes
+
+/mnt/volumes:
+total 0
+drwx------ 2 root root 0 Jun 29 11:03 _deleting
+drwxr-xr-x 2 root root 0 Jun 29 11:03 csi
+
+/mnt/volumes/_deleting:
+total 0
+
+/mnt/volumes/csi:
+total 0
+```
+
+Clearly the directory number has grown up to 4. But the real folder hasn't come to board, which app could consume data on. 
 
 Right after executing storage.yaml, set **accessModes** in pvc.yaml:
 
@@ -989,6 +999,7 @@ spec:
   accessModes:
     - ReadWriteMany
 ...
+  storageClassName: rook-cephfs
 ```
 
 Running the manifest file:
@@ -998,9 +1009,55 @@ $ microk8s kubectl create -f pvc.yaml
 persistentvolumeclaim/cephfs-pvc created 
 ```
 
-A **PVC**, whose name is **cephfs-pvc** on our case, is created. Mounting it just as a **Normal Directory inside pod**, any normal app running in the pod could CRUD files under the directory. 
+A **PVC**, whose name is **cephfs-pvc** on our case, is created. It matches StorageClass "rook-cephfs", so app "direct-mount.yaml" has mounted it.
 
-Now, thanks for the series of **Kubernetes Standard Interface**s: DFS -> Storage Class -> PV -> PVC, a normal app is able to consume data in **Ceph DFS**.
+Checking /mnt in the app again:
+
+```
+# ls -Rl /mnt
+/mnt:
+total 0
+drwxr-xr-x 4 root root 2 Jun 29 11:03 volumes
+
+/mnt/volumes:
+total 0
+drwx------ 2 root root 0 Jun 29 11:03 _deleting
+drwxr-xr-x 2 root root 0 Jun 29 11:03 csi
+
+/mnt/volumes/_deleting:
+total 0
+
+/mnt/volumes/csi:
+total 0
+[root@xiaozhong-x570 /]# ls -Rl /mnt
+/mnt:
+total 0
+drwxr-xr-x 4 root root 3 Jun 29 11:19 volumes
+
+/mnt/volumes:
+total 0
+-rwxr-xr-x 1 root root 0 Jun 29 11:19 _csi:csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7.meta
+drwx------ 2 root root 0 Jun 29 11:03 _deleting
+drwxr-xr-x 3 root root 1 Jun 29 11:19 csi
+
+/mnt/volumes/_deleting:
+total 0
+
+/mnt/volumes/csi:
+total 0
+drwxrwxrwx 3 root root 2 Jun 29 11:19 csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7
+
+/mnt/volumes/csi/csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7:
+total 0
+drwxrwxrwx 2 root root 0 Jun 29 11:19 042607ab-28f2-42d1-9073-5550b521f662
+
+/mnt/volumes/csi/csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7/042607ab-28f2-42d1-9073-5550b521f662:
+total 0
+```
+
+There more folders with 5 level emerging. On the leaf, that is where the DFS would store data from users.
+
+So far, thanks for the series of **Kubernetes Standard Interface**s: Storage Class -> PV -> PVC -> DFS, a normal app is able to consume data in **Ceph DFS**.
 
 <br>
 
@@ -1009,6 +1066,10 @@ Now, thanks for the series of **Kubernetes Standard Interface**s: DFS -> Storage
 ## 4, Develop/Deploy app "**files**" to use **DFS**.
 
 <br>
+
+On Section 3.6 and 3.7, we tested DFS by logging into app "rook-direct-mount". That isn't a normal way. At this section, the DFS will present at remote web server, and any browser app can CRUD files to/at/from the web server. Only if we have found such as a way, we could say that any customer is able to consume data at the DFS. 
+
+Tha app developed by us is called "files". 
 
 The framework of app "**files**" is based on express.js, de facto standard framework for Node.js. And the latter is a full-stack framework for web app developement. We could think it as creating 2 applications once: **web server app** and **web browser app**. 
 
@@ -1084,15 +1145,15 @@ At next section, let's create and take a trial of the app.
 At the directory: **express-js-files**, build docker container image for the app:
 
 ```
-$ docker build -t files .
-$ docker save files > files.local.tar
+$ sudo docker build -t files:local .
+$ sudo docker save files:local > ../files.local.tar
 
 ```
 
 Import the image into Microk8s.
 
 ```
-$ microk8s ctr image import files.local.tar
+$ microk8s ctr image import ../files.local.tar
 ```
 
 Deploy the **Express.js (Node.js) app** from **Docker container image** to a service of **Microk8s (Kubernetes)** cluster.
@@ -1165,27 +1226,56 @@ Let's verify via app ("rook-direct-mount") that we launched at [Section 3.6](#ve
 # ls -Rl /mnt
 /mnt:
 total 0
-drwxr-xr-x 3 root root 2 Apr 28 02:10 volumes
+drwxr-xr-x 4 root root 3 Jun 29 11:19 volumes
 
 /mnt/volumes:
 total 0
--rwxr-xr-x 1 root root 0 Apr 28 02:10 _csi:csi-vol-5667296c-c698-11ec-b90d-8a403445a73c.meta
-drwxr-xr-x 3 root root 1 Apr 28 02:10 csi
+-rwxr-xr-x 1 root root 0 Jun 29 11:19 _csi:csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7.meta
+drwx------ 2 root root 0 Jun 29 11:03 _deleting
+drwxr-xr-x 3 root root 1 Jun 29 11:19 csi
+
+/mnt/volumes/_deleting:
+total 0
 
 /mnt/volumes/csi:
 total 0
-drwxrwxrwx 3 root root 2 Apr 28 02:10 csi-vol-5667296c-c698-11ec-b90d-8a403445a73c
+drwxrwxrwx 3 root root 2 Jun 29 11:19 csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7
 
-/mnt/volumes/csi/csi-vol-5667296c-c698-11ec-b90d-8a403445a73c:
+/mnt/volumes/csi/csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7:
 total 0
-drwxrwxrwx 2 root root 2 May 11 07:32 4001fea4-e13a-47a3-9c20-8ff9deeb141f
+drwxrwxrwx 2 root root 1 Jun 30 11:17 042607ab-28f2-42d1-9073-5550b521f662
 
-/mnt/volumes/csi/csi-vol-5667296c-c698-11ec-b90d-8a403445a73c/4001fea4-e13a-47a3-9c20-8ff9deeb141f:
-total 48
--rw-r--r-- 1 root root 22782 Apr 29 11:05 daisy.jpg
+/mnt/volumes/csi/csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7/042607ab-28f2-42d1-9073-5550b521f662:
+total 280
+-rw-r--r-- 1 root root 286328 Jun 30 11:17 kubernetes.png
+[root@xiaozhong-x570 /]# ls -Rl /mnt
+/mnt:
+total 0
+drwxr-xr-x 4 root root 3 Jun 29 11:19 volumes
+
+/mnt/volumes:
+total 0
+-rwxr-xr-x 1 root root 0 Jun 29 11:19 _csi:csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7.meta
+drwx------ 2 root root 0 Jun 29 11:03 _deleting
+drwxr-xr-x 3 root root 1 Jun 29 11:19 csi
+
+/mnt/volumes/_deleting:
+total 0
+
+/mnt/volumes/csi:
+total 0
+drwxrwxrwx 3 root root 2 Jun 29 11:19 csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7
+
+/mnt/volumes/csi/csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7:
+total 0
+drwxrwxrwx 2 root root 1 Jun 30 11:32 042607ab-28f2-42d1-9073-5550b521f662
+
+/mnt/volumes/csi/csi-vol-5f923333-f79d-11ec-98ef-92b27d010ee7/042607ab-28f2-42d1-9073-5550b521f662:
+total 23
+-rw-r--r-- 1 root root 22782 Jun 30 11:32 daisy.jpg
 ```
 
--- **the last line** shows that the uploaded file is stored in the DFS really. 
+-- **the last line** shows that the uploaded file is stored in the DFS really, which is at the leaf under /mnt we mounted ahead. 
 
 <br>
 
